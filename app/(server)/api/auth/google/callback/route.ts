@@ -1,4 +1,6 @@
-import { error } from "console";
+import connectMongoDB from "@/db/db";
+import UsersModel from "@/db/models/Users.model";
+import { createToken, tokenAge } from "@/lib/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -31,8 +33,6 @@ export async function GET(req: NextRequest) {
 
         const accessToken = tokenData.access_token;
 
-        console.log("token data response", tokenData);
-
         if (!accessToken) {
             return NextResponse.json({ success: false, error: "No access token found." }, { status: 400 });
         };
@@ -48,7 +48,46 @@ export async function GET(req: NextRequest) {
 
         const googleUser = await userRes.json();
 
-        return NextResponse.json({ success: true, data: googleUser }, { status: 200 });
+        await connectMongoDB();
+
+        const userData = await UsersModel.findOneAndUpdate(
+            {
+                email: googleUser.email,
+            },
+            {
+                $setOnInsert: {
+                    email: googleUser.email,
+                    name: googleUser.name,
+                    picture: googleUser.picture
+                }
+            },
+            {
+                upsert: true,
+                new: true
+            }
+        );
+
+        const data = {
+            email: userData.email,
+            name: userData.name,
+            picture: userData.picture
+        };
+
+        const token = createToken(data);
+
+        const response = NextResponse.redirect(
+            new URL("/", req.url)
+        );
+
+        response.cookies.set("authToken", token, {
+            httpOnly: true,
+            secure: process.env.Environment === "Production",
+            sameSite: "strict",
+            maxAge: tokenAge,
+            path: "/"
+        });
+
+        return response;
     } catch (error) {
         console.log("Error in /api/auth api", error);
         return NextResponse.json({ success: false, error: "Internal server error." }, { status: 500 });
