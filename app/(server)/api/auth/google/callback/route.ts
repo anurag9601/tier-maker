@@ -1,5 +1,6 @@
 import connectMongoDB from "@/db/db";
 import UsersModel from "@/db/models/Users.model";
+import { userDataI } from "@/lib/global.interface";
 import { createToken, tokenAge } from "@/lib/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -67,7 +68,7 @@ export async function GET(req: NextRequest) {
             }
         );
 
-        const data = {
+        const data: userDataI = {
             email: userData.email,
             name: userData.name,
             picture: userData.picture
@@ -82,7 +83,7 @@ export async function GET(req: NextRequest) {
         response.cookies.set("authToken", token, {
             httpOnly: true,
             secure: process.env.Environment === "Production",
-            sameSite: "strict",
+            sameSite: "lax",
             maxAge: tokenAge,
             path: "/"
         });

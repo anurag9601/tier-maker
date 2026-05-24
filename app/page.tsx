@@ -1,7 +1,15 @@
-import React from 'react'
+"use server"
+import { validateLoginUsertoken } from "@/lib/functions"
 
-export default function page() {
+export default async function page() {
+
+  const userData = await validateLoginUsertoken();
+
+  const data = userData.data;
+
   return (
-    <div>page</div>
+    <div className="bg-red-500">
+      <h1>{data.name}</h1>
+    </div>
   )
 }
